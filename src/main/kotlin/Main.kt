@@ -47,6 +47,8 @@ fun main() {
             title = "Maze Solver"
         }
         oliveProgram {
+            val squares = initialiseSquares()
+
             extend {
                 //draw background
                 drawer.clear(ColorRGBa.WHITE)
@@ -78,4 +80,32 @@ fun main() {
             }
         }
     }
+}
+
+fun initialiseSquares(): List<List<Square>> {
+    val squares = MutableList(NUM_ROWS) { y ->
+        MutableList(NUM_COLUMNS) { x ->
+            Square(x, y, null, null, null, null)
+        }
+    }
+
+    //make the squares point to each other
+    for (row in squares) {
+        for (square in row) {
+            if (square.x != 0) {
+                square.left = squares[square.y][square.x - 1]
+            }
+            if (square.y != 0) {
+                square.up = squares[square.y - 1][square.x]
+            }
+            if (square.x != NUM_COLUMNS - 1) {
+                square.right = squares[square.y][square.x + 1]
+            }
+            if (square.y != NUM_ROWS - 1) {
+                square.down = squares[square.y + 1][square.x]
+            }
+        }
+    }
+
+    return squares
 }
