@@ -4,27 +4,27 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 /* the name of this project, default is the template version but you are free to change these */
-group = "org.openrndr.template"
-version = "0.3.14"
+group = "net.rolodophone.mazesolver"
+version = "0.0"
 
-val applicationMainClass = "TemplateProgramKt"
+val applicationMainClass = "MainKt"
 
 /*  Which additional (ORX) libraries should be added to this project. */
 val orxFeatures = setOf(
 //  "orx-boofcv",
 //  "orx-camera",
 //  "orx-chataigne",
-    "orx-compositor",
+//    "orx-compositor",
 //  "orx-dnk3",
 //  "orx-easing",
 //  "orx-file-watcher",
 //  "orx-parameters",
 //  "orx-filter-extension",
-    "orx-fx",
+//    "orx-fx",
 //  "orx-glslify",
 //  "orx-gradient-descent",
-    "orx-gui",
-    "orx-image-fit",
+//    "orx-gui",
+//    "orx-image-fit",
 //  "orx-integral-image",
 //  "orx-interval-tree",
 //  "orx-jumpflood",
@@ -32,15 +32,15 @@ val orxFeatures = setOf(
 //  "orx-mesh-generators",
 //  "orx-midi",
 //  "orx-no-clear",
-    "orx-noise",
+//    "orx-noise",
 //  "orx-obj-loader",
-    "orx-olive",
+    "orx-olive"
 //  "orx-osc",
 //  "orx-palette",
 //  "orx-poisson-fill",
 //  "orx-rabbit-control,
 //  "orx-runway",
-    "orx-shade-styles",
+//    "orx-shade-styles",
 //  "orx-shader-phrases",
 //  "orx-shapes",
 //  "orx-syphon",
@@ -49,7 +49,7 @@ val orxFeatures = setOf(
 //  "orx-kinect-v1",
 //  "orx-tensorflow",
     
-    "orx-panel"
+//    "orx-panel"
 )
 
 val ormlFeatures = setOf<String>(
