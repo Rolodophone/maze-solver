@@ -3,15 +3,32 @@ import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.olive.oliveProgram
 import org.openrndr.shape.LineSegment
 
-/**
- *  This is a template for a live program.
- *
- *  It uses oliveProgram {} instead of program {}. All code inside the
- *  oliveProgram {} can be changed while the program is running.
- */
 
-const val NUM_COLUMNS = 5
-const val NUM_ROWS = 5
+/**
+ * Number of columns in the maze (width)
+ */
+const val NUM_COLUMNS: Int = 5
+
+/**
+ * Number of rows in the maze (height)
+ */
+const val NUM_ROWS: Int = 5
+
+/**
+ * How many seconds to pause for when finding a correct path (0 means as fast as possible)
+ */
+const val PAUSE_SOLUTION: Double = 3.0
+
+/**
+ * How many seconds to pause for on each path that is neither correct nor a dead end (0 means as fast as possible)
+ */
+const val PAUSE_SEARCHING: Double = 0.0
+
+/**
+ * How many seconds to pause for when finding a dead end (0 means as fast as possible)
+ */
+const val PAUSE_DEAD_END: Double = 1.0
+
 
 fun main() {
     application {
