@@ -1,18 +1,18 @@
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.olive.oliveProgram
-import org.openrndr.shape.LineSegment
+import org.openrndr.shape.Rectangle
 
 
 /**
  * Number of columns in the maze (width)
  */
-const val NUM_COLUMNS: Int = 5
+const val NUM_COLUMNS: Int = 6
 
 /**
  * Number of rows in the maze (height)
  */
-const val NUM_ROWS: Int = 5
+const val NUM_ROWS: Int = 4
 
 /**
  * How many seconds to pause for when finding a correct path (0 means as fast as possible)
@@ -29,6 +29,14 @@ const val PAUSE_SEARCHING: Double = 0.0
  */
 const val PAUSE_DEAD_END: Double = 1.0
 
+/**
+ * The width of the walls of the maze
+ */
+const val WALL_WIDTH: Double = 12.0
+
+
+const val HALF_WALL_WIDTH = WALL_WIDTH / 2
+
 
 fun main() {
     application {
@@ -44,23 +52,29 @@ fun main() {
                 drawer.clear(ColorRGBa.WHITE)
 
                 //calculate grid
-                val lines = mutableListOf<LineSegment>()
-                val squareWidth = width / NUM_COLUMNS
-                val squareHeight = height / NUM_ROWS
+                val points = mutableListOf<Rectangle>()
 
-                for (i in 1 until NUM_COLUMNS) {
-                    val x = squareWidth * i
-                    lines.add(LineSegment(x, 0, x, height))
+                val squareWidth = width / NUM_COLUMNS.toDouble()
+                val squareHeight = height / NUM_ROWS.toDouble()
+
+                for (xi in 0..NUM_COLUMNS) {
+                    for (yi in 0..NUM_ROWS) {
+
+                        val x = xi * squareWidth
+                        val y = yi * squareHeight
+
+                        points.add(Rectangle(
+                            x - HALF_WALL_WIDTH,
+                            y - HALF_WALL_WIDTH,
+                            WALL_WIDTH,
+                            WALL_WIDTH
+                        ))
+                    }
                 }
 
-                for (i in 1 until NUM_ROWS) {
-                    val y = squareHeight * i
-                    lines.add(LineSegment(0, y, width, y))
-                }
-
-                //draw lines
-                drawer.stroke = ColorRGBa.GRAY
-                drawer.lineSegments(lines)
+                //draw points
+                drawer.fill = ColorRGBa.BLACK
+                drawer.rectangles(points)
             }
         }
     }
