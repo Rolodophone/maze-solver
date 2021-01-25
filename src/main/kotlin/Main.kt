@@ -53,9 +53,9 @@ fun main() {
                 //draw background
                 drawer.clear(ColorRGBa.WHITE)
 
-                //calculate grid
-                val points = mutableListOf<Rectangle>()
+                val walls = mutableListOf<Rectangle>()
 
+                //calculate grid
                 val squareWidth = width / NUM_COLUMNS.toDouble()
                 val squareHeight = height / NUM_ROWS.toDouble()
 
@@ -65,7 +65,7 @@ fun main() {
                         val x = xi * squareWidth
                         val y = yi * squareHeight
 
-                        points.add(Rectangle(
+                        walls.add(Rectangle(
                             x - HALF_WALL_WIDTH,
                             y - HALF_WALL_WIDTH,
                             WALL_WIDTH,
@@ -74,9 +74,47 @@ fun main() {
                     }
                 }
 
-                //draw points
+                //calculate walls
+                for (row in squares) {
+                    for (square in row) {
+                        if (square.left == null) {
+                            walls.add(Rectangle(
+                                square.x * squareWidth,
+                                square.y * squareHeight + HALF_WALL_WIDTH,
+                                HALF_WALL_WIDTH,
+                                squareHeight - WALL_WIDTH
+                            ))
+                        }
+                        if (square.up == null) {
+                            walls.add(Rectangle(
+                                square.x * squareWidth + HALF_WALL_WIDTH,
+                                square.y * squareHeight,
+                                squareWidth - WALL_WIDTH,
+                                HALF_WALL_WIDTH
+                            ))
+                        }
+                        if (square.right == null) {
+                            walls.add(Rectangle(
+                                square.x * squareWidth + squareWidth - HALF_WALL_WIDTH,
+                                square.y * squareHeight + HALF_WALL_WIDTH,
+                                HALF_WALL_WIDTH,
+                                squareHeight - WALL_WIDTH
+                            ))
+                        }
+                        if (square.down == null) {
+                            walls.add(Rectangle(
+                                square.x * squareWidth + HALF_WALL_WIDTH,
+                                square.y * squareHeight + squareHeight - HALF_WALL_WIDTH,
+                                squareWidth - WALL_WIDTH,
+                                HALF_WALL_WIDTH
+                            ))
+                        }
+                    }
+                }
+
+                //draw walls
                 drawer.fill = ColorRGBa.BLACK
-                drawer.rectangles(points)
+                drawer.rectangles(walls)
             }
         }
     }
