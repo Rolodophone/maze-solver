@@ -1,10 +1,11 @@
+import org.openrndr.KEY_ENTER
+import org.openrndr.MouseEvent
 import org.openrndr.Program
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.olive.oliveProgram
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
-import kotlin.math.abs
 import kotlin.math.floor
 
 
@@ -40,12 +41,18 @@ const val PAUSE_DEAD_END: Double = 1.0
  */
 const val WALL_WIDTH: Double = 12.0
 
+/**
+ * The radius of the circle representing the start position of the maze
+ */
+const val TERMINAL_RADIUS = 25.0
+
 
 const val HALF_WALL_WIDTH = WALL_WIDTH / 2
 
 
 lateinit var pg: Program
 var state = State.DRAW_MAZE
+val squares = initialiseSquares()
 
 
 enum class State {
@@ -63,7 +70,6 @@ fun main() {
 		}
 		oliveProgram {
 			pg = this
-			val squares = initialiseSquares()
 
 			extend {
 				//never use stroke
@@ -136,66 +142,19 @@ fun main() {
 				drawer.fill = ColorRGBa.BLACK
 				drawer.rectangles(walls)
 
-				//draw preview of wall at mouse position
-				val nearestWall = findNearestWall()
-
-				if (nearestWall != null) {
-					val wall = if (nearestWall.x % 1 == 0.5) { //vertical
-						Rectangle(
-							(nearestWall.x + 0.5) * (width / NUM_COLUMNS.toDouble()) - HALF_WALL_WIDTH,
-							(nearestWall.y) * (height / NUM_ROWS.toDouble()) + HALF_WALL_WIDTH,
-							WALL_WIDTH,
-							height / NUM_ROWS.toDouble() - WALL_WIDTH
-						)
-					} else { //horizontal
-						Rectangle(
-							(nearestWall.x) * (width / NUM_COLUMNS.toDouble()) + HALF_WALL_WIDTH,
-							(nearestWall.y + 0.5) * (height / NUM_ROWS.toDouble()) - HALF_WALL_WIDTH,
-							width / NUM_COLUMNS.toDouble() - WALL_WIDTH,
-							WALL_WIDTH
-						)
-					}
-
-					drawer.fill = ColorRGBa.GRAY
-					drawer.rectangle(wall)
-				}
+				drawPreviews()
 			}
 
-			mouse.buttonDown.listen {
-				when (state) {
-					State.DRAW_MAZE -> {
-						//add/remove walls
-						val nearestWall = findNearestWall()
+			mouse.buttonDown.listen { onMouseDown(it) }
 
-						if (nearestWall != null) {
-							if (nearestWall.x % 1 == 0.5) { //vertical
-								val left = squares[nearestWall.y.toInt()][nearestWall.x.toInt()]
-								val right = squares[nearestWall.y.toInt()][nearestWall.x.toInt() + 1]
-
-								if (left.right == null) {
-									left.right = right
-									right.left = left
-								}
-								else {
-									left.right = null
-									right.left = null
-								}
-							}
-
-							else { //horizontal
-								val up = squares[nearestWall.y.toInt()][nearestWall.x.toInt()]
-								val down = squares[nearestWall.y.toInt() + 1][nearestWall.x.toInt()]
-
-								if (up.down == null) {
-									up.down = down
-									down.up = up
-								}
-								else {
-									up.down = null
-									down.up = null
-								}
-							}
-						}
+			keyboard.keyDown.listen { e ->
+				if (e.key == KEY_ENTER) {
+					//move to next state
+					state = when (state) {
+						State.DRAW_MAZE -> State.SELECT_START
+						State.SELECT_START -> State.SELECT_END
+						State.SELECT_END -> State.RUNNING
+						State.RUNNING -> State.DRAW_MAZE
 					}
 				}
 			}
@@ -264,4 +223,93 @@ fun findNearestWall(): Vector2? {
 		nearestWall.y == NUM_ROWS - 0.5) null
 
 	else nearestWall
+}
+
+fun drawPreviews() {
+	when (state) {
+		State.DRAW_MAZE -> {
+			//draw preview of wall at mouse position
+			val nearestWall = findNearestWall()
+
+			if (nearestWall != null) {
+				val wall = if (nearestWall.x % 1 == 0.5) { //vertical
+					Rectangle(
+						(nearestWall.x + 0.5) * (pg.width / NUM_COLUMNS.toDouble()) - HALF_WALL_WIDTH,
+						(nearestWall.y) * (pg.height / NUM_ROWS.toDouble()) + HALF_WALL_WIDTH,
+						WALL_WIDTH,
+						pg.height / NUM_ROWS.toDouble() - WALL_WIDTH
+					)
+				} else { //horizontal
+					Rectangle(
+						(nearestWall.x) * (pg.width / NUM_COLUMNS.toDouble()) + HALF_WALL_WIDTH,
+						(nearestWall.y + 0.5) * (pg.height / NUM_ROWS.toDouble()) - HALF_WALL_WIDTH,
+						pg.width / NUM_COLUMNS.toDouble() - WALL_WIDTH,
+						WALL_WIDTH
+					)
+				}
+
+				pg.drawer.fill = ColorRGBa(0.5, 0.5, 0.5, 0.5)
+				pg.drawer.rectangle(wall)
+			}
+		}
+
+		State.SELECT_START -> {
+			val x = floor(pg.mouse.position.x, pg.width / NUM_COLUMNS.toDouble()) +
+				0.5 * (pg.width / NUM_COLUMNS.toDouble())
+			val y = floor(pg.mouse.position.y, pg.height / NUM_ROWS.toDouble()) +
+				0.5 * (pg.height / NUM_ROWS.toDouble())
+
+			pg.drawer.fill = ColorRGBa(0.0, 0.0, 1.0, 0.5)
+			pg.drawer.circle(x, y, TERMINAL_RADIUS)
+		}
+
+		State.SELECT_END -> {
+			val x = floor(pg.mouse.position.x, pg.width / NUM_COLUMNS.toDouble()) +
+				0.5 * (pg.width / NUM_COLUMNS.toDouble())
+			val y = floor(pg.mouse.position.y, pg.height / NUM_ROWS.toDouble()) +
+				0.5 * (pg.height / NUM_ROWS.toDouble())
+
+			pg.drawer.fill = ColorRGBa(0.0, 0.0, 1.0, 0.5)
+			pg.drawer.rectangle(x - TERMINAL_RADIUS, y - TERMINAL_RADIUS, TERMINAL_RADIUS * 2, TERMINAL_RADIUS * 2)
+		}
+	}
+}
+
+fun onMouseDown(event: MouseEvent) {
+	when (state) {
+		State.DRAW_MAZE -> {
+			//add/remove walls
+			val nearestWall = findNearestWall()
+
+			if (nearestWall != null) {
+				if (nearestWall.x % 1 == 0.5) { //vertical
+					val left = squares[nearestWall.y.toInt()][nearestWall.x.toInt()]
+					val right = squares[nearestWall.y.toInt()][nearestWall.x.toInt() + 1]
+
+					if (left.right == null) {
+						left.right = right
+						right.left = left
+					}
+					else {
+						left.right = null
+						right.left = null
+					}
+				}
+
+				else { //horizontal
+					val up = squares[nearestWall.y.toInt()][nearestWall.x.toInt()]
+					val down = squares[nearestWall.y.toInt() + 1][nearestWall.x.toInt()]
+
+					if (up.down == null) {
+						up.down = down
+						down.up = up
+					}
+					else {
+						up.down = null
+						down.up = null
+					}
+				}
+			}
+		}
+	}
 }
