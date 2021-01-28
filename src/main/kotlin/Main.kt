@@ -19,17 +19,19 @@ const val NUM_COLUMNS: Int = 6
 const val NUM_ROWS: Int = 4
 
 /**
- * How many seconds to pause for when finding a correct path (0 means as fast as possible)
+ * How many seconds to pause for when finding a correct path (0 means as fast as possible; -1 means pause until enter
+ * is pressed)
  */
-const val PAUSE_SOLUTION: Double = 3.0
+const val PAUSE_SOLUTION: Double = -1.0
 
 /**
- * How many seconds to pause for on each path that is neither correct nor a dead end (0 means as fast as possible)
+ * How many seconds to pause for on each path that is neither correct nor a dead end (0 means as fast as possible; -1
+ * means until enter is pressed)
  */
 const val PAUSE_SEARCHING: Double = 0.0
 
 /**
- * How many seconds to pause for when finding a dead end (0 means as fast as possible)
+ * How many seconds to pause for when finding a dead end (0 means as fast as possible; -1 means until enter is pressed)
  */
 const val PAUSE_DEAD_END: Double = 1.0
 
@@ -43,6 +45,12 @@ const val HALF_WALL_WIDTH = WALL_WIDTH / 2
 
 
 lateinit var pg: Program
+var state = State.DRAW_MAZE
+
+
+enum class State {
+	DRAW_MAZE, SELECT_START, SELECT_END, RUNNING
+}
 
 
 fun main() {
@@ -63,29 +71,6 @@ fun main() {
 
 				//draw background
 				drawer.clear(ColorRGBa.WHITE)
-
-				//draw preview of wall at mouse position
-				val nearestWall = findNearestWall()
-
-				val wall = if (abs(nearestWall.x % 1) == 0.5) { //vertical
-					Rectangle(
-						(nearestWall.x + 0.5) * (width/NUM_COLUMNS.toDouble()) - HALF_WALL_WIDTH,
-						(nearestWall.y)       * (height/NUM_ROWS.toDouble())   + HALF_WALL_WIDTH,
-						WALL_WIDTH,
-						height/NUM_ROWS.toDouble() - WALL_WIDTH
-					)
-				}
-				else { //horizontal
-					Rectangle(
-						(nearestWall.x)			* (width/NUM_COLUMNS.toDouble())	+ HALF_WALL_WIDTH,
-						(nearestWall.y + 0.5)	* (height/NUM_ROWS.toDouble())		- HALF_WALL_WIDTH,
-						width/NUM_COLUMNS.toDouble() - WALL_WIDTH,
-						WALL_WIDTH
-					)
-				}
-
-				drawer.fill = ColorRGBa.GRAY
-				drawer.rectangle(wall)
 
 				//for walls and grid
 				val walls = mutableListOf<Rectangle>()
@@ -150,6 +135,69 @@ fun main() {
 				//draw walls
 				drawer.fill = ColorRGBa.BLACK
 				drawer.rectangles(walls)
+
+				//draw preview of wall at mouse position
+				val nearestWall = findNearestWall()
+
+				if (nearestWall != null) {
+					val wall = if (nearestWall.x % 1 == 0.5) { //vertical
+						Rectangle(
+							(nearestWall.x + 0.5) * (width / NUM_COLUMNS.toDouble()) - HALF_WALL_WIDTH,
+							(nearestWall.y) * (height / NUM_ROWS.toDouble()) + HALF_WALL_WIDTH,
+							WALL_WIDTH,
+							height / NUM_ROWS.toDouble() - WALL_WIDTH
+						)
+					} else { //horizontal
+						Rectangle(
+							(nearestWall.x) * (width / NUM_COLUMNS.toDouble()) + HALF_WALL_WIDTH,
+							(nearestWall.y + 0.5) * (height / NUM_ROWS.toDouble()) - HALF_WALL_WIDTH,
+							width / NUM_COLUMNS.toDouble() - WALL_WIDTH,
+							WALL_WIDTH
+						)
+					}
+
+					drawer.fill = ColorRGBa.GRAY
+					drawer.rectangle(wall)
+				}
+			}
+
+			mouse.buttonDown.listen {
+				when (state) {
+					State.DRAW_MAZE -> {
+						//add/remove walls
+						val nearestWall = findNearestWall()
+
+						if (nearestWall != null) {
+							if (nearestWall.x % 1 == 0.5) { //vertical
+								val left = squares[nearestWall.y.toInt()][nearestWall.x.toInt()]
+								val right = squares[nearestWall.y.toInt()][nearestWall.x.toInt() + 1]
+
+								if (left.right == null) {
+									left.right = right
+									right.left = left
+								}
+								else {
+									left.right = null
+									right.left = null
+								}
+							}
+
+							else { //horizontal
+								val up = squares[nearestWall.y.toInt()][nearestWall.x.toInt()]
+								val down = squares[nearestWall.y.toInt() + 1][nearestWall.x.toInt()]
+
+								if (up.down == null) {
+									up.down = down
+									down.up = up
+								}
+								else {
+									up.down = null
+									down.up = null
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
@@ -188,7 +236,7 @@ fun initialiseSquares(): List<List<Square>> {
  *
  * @return The coordinates of the wall so that the wall between (1, 2) and (1, 3) would be (1, 2.5)
  */
-fun findNearestWall(): Vector2 {
+fun findNearestWall(): Vector2? {
 	// the mouse position in terms of the grid, i.e. if each square had width and height 1
 	val mouseXInGrid = pg.mouse.position.x * (NUM_COLUMNS / pg.width.toDouble())
 	val mouseYInGrid = pg.mouse.position.y * (NUM_ROWS / pg.height.toDouble())
@@ -201,7 +249,7 @@ fun findNearestWall(): Vector2 {
 	val hoveredSquareX = floor(mouseXInGrid)
 	val hoveredSquareY = floor(mouseYInGrid)
 
-	return if (mouseYInSquare > mouseXInSquare) {
+	val nearestWall =  if (mouseYInSquare > mouseXInSquare) {
 		if (mouseYInSquare > 1 - mouseXInSquare) Vector2(hoveredSquareX, hoveredSquareY + 0.5)
 		else Vector2(hoveredSquareX - 0.5, hoveredSquareY)
 	}
@@ -209,4 +257,11 @@ fun findNearestWall(): Vector2 {
 		if (mouseYInSquare > 1 - mouseXInSquare) Vector2(hoveredSquareX + 0.5, hoveredSquareY)
 		else Vector2(hoveredSquareX, hoveredSquareY - 0.5)
 	}
+
+	return if (nearestWall.x == -0.5 ||
+		nearestWall.x == NUM_COLUMNS - 0.5 ||
+		nearestWall.y == -0.5 ||
+		nearestWall.y == NUM_ROWS - 0.5) null
+
+	else nearestWall
 }
