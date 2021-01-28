@@ -3,6 +3,7 @@ import org.openrndr.MouseEvent
 import org.openrndr.Program
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
+import org.openrndr.draw.loadFont
 import org.openrndr.extra.olive.oliveProgram
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
@@ -56,7 +57,7 @@ val squares = initialiseSquares()
 
 
 enum class State {
-	DRAW_MAZE, SELECT_START, SELECT_END, RUNNING
+	DRAW_MAZE, SELECT_START, SELECT_END, RUNNING, PAUSED
 }
 
 
@@ -70,6 +71,7 @@ fun main() {
 		}
 		oliveProgram {
 			pg = this
+			drawer.fontMap = loadFont("data/fonts/default.otf", 16.0)
 
 			extend {
 				//never use stroke
@@ -143,6 +145,8 @@ fun main() {
 				drawer.rectangles(walls)
 
 				drawPreviews()
+
+				Info.draw()
 			}
 
 			mouse.buttonDown.listen { onMouseDown(it) }
@@ -154,7 +158,8 @@ fun main() {
 						State.DRAW_MAZE -> State.SELECT_START
 						State.SELECT_START -> State.SELECT_END
 						State.SELECT_END -> State.RUNNING
-						State.RUNNING -> State.DRAW_MAZE
+						State.RUNNING -> State.PAUSED
+						State.PAUSED -> State.RUNNING
 					}
 				}
 			}
