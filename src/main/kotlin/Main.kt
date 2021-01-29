@@ -1,7 +1,4 @@
-import org.openrndr.KEY_ENTER
-import org.openrndr.MouseEvent
-import org.openrndr.Program
-import org.openrndr.application
+import org.openrndr.*
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.loadFont
 import org.openrndr.extra.olive.oliveProgram
@@ -180,6 +177,11 @@ fun main() {
 						State.RUNNING -> state = State.PAUSED
 						State.PAUSED -> state = State.RUNNING
 						else -> {}
+					}
+				}
+				else if (e.key == KEY_ESCAPE) {
+					if (state == State.RUNNING || state == State.PAUSED) {
+						state = State.DRAW_MAZE
 					}
 				}
 			}

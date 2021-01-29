@@ -8,8 +8,8 @@ object Info {
 			State.DRAW_MAZE -> "Draw the maze. Press enter when done."
 			State.SELECT_START -> "Select a start location."
 			State.SELECT_END -> "Select an end location."
-			State.RUNNING -> ""
-			State.PAUSED -> "Paused. Press enter to continue."
+			State.RUNNING -> "Running. Press enter to pause or press escape to stop."
+			State.PAUSED -> "Paused. Press enter to continue or press escape to stop."
 		}
 
 		//draw a white background
