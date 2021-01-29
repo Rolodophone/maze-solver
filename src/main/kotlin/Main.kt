@@ -217,41 +217,6 @@ fun initialiseSquares(): List<List<Square>> {
 	return squares
 }
 
-/**
- * Finds the nearest wall to the mouse position.
- *
- * @return The coordinates of the wall so that the wall between (1, 2) and (1, 3) would be (1, 2.5)
- */
-fun findNearestWall(): Vector2? {
-	// the mouse position in terms of the grid, i.e. if each square had width and height 1
-	val mouseXInGrid = pg.mouse.position.x * (NUM_COLUMNS / pg.width.toDouble())
-	val mouseYInGrid = pg.mouse.position.y * (NUM_ROWS / pg.height.toDouble())
-
-	// the mouse position within the grid
-	val mouseXInSquare = mouseXInGrid % 1
-	val mouseYInSquare = mouseYInGrid % 1
-
-	// the index of the square that the mouse resides in
-	val hoveredSquareX = floor(mouseXInGrid)
-	val hoveredSquareY = floor(mouseYInGrid)
-
-	val nearestWall =  if (mouseYInSquare > mouseXInSquare) {
-		if (mouseYInSquare > 1 - mouseXInSquare) Vector2(hoveredSquareX, hoveredSquareY + 0.5)
-		else Vector2(hoveredSquareX - 0.5, hoveredSquareY)
-	}
-	else {
-		if (mouseYInSquare > 1 - mouseXInSquare) Vector2(hoveredSquareX + 0.5, hoveredSquareY)
-		else Vector2(hoveredSquareX, hoveredSquareY - 0.5)
-	}
-
-	return if (nearestWall.x == -0.5 ||
-		nearestWall.x == NUM_COLUMNS - 0.5 ||
-		nearestWall.y == -0.5 ||
-		nearestWall.y == NUM_ROWS - 0.5) null
-
-	else nearestWall
-}
-
 fun drawPreviews() {
 	when (state) {
 		State.DRAW_MAZE -> {
