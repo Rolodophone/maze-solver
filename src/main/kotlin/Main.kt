@@ -5,6 +5,7 @@ import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.loadFont
 import org.openrndr.extra.olive.oliveProgram
+import org.openrndr.math.IntVector2
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import kotlin.math.floor
@@ -54,6 +55,10 @@ const val HALF_WALL_WIDTH = WALL_WIDTH / 2
 lateinit var pg: Program
 var state = State.DRAW_MAZE
 val squares = initialiseSquares()
+var startX: Int? = null
+var startY: Int? = null
+var endX: Int? = null
+var endY: Int? = null
 
 
 enum class State {
@@ -144,6 +149,22 @@ fun main() {
 				drawer.fill = ColorRGBa.BLACK
 				drawer.rectangles(walls)
 
+				//draw start and end
+				drawer.fill = ColorRGBa.BLUE
+
+				val startX = startX
+				val startY = startY
+				if (startX != null && startY != null) {
+					drawer.circle(getCenterOfSquareAtIndex(startX, startY), TERMINAL_RADIUS)
+				}
+
+				val endX = endX
+				val endY = endY
+				if (endX != null && endY != null) {
+					val pos = getCenterOfSquareAtIndex(endX, endY) - TERMINAL_RADIUS
+					drawer.rectangle(pos, TERMINAL_RADIUS*2, TERMINAL_RADIUS*2)
+				}
+
 				drawPreviews()
 
 				Info.draw()
@@ -153,13 +174,12 @@ fun main() {
 
 			keyboard.keyDown.listen { e ->
 				if (e.key == KEY_ENTER) {
-					//move to next state
-					state = when (state) {
-						State.DRAW_MAZE -> State.SELECT_START
-						State.SELECT_START -> State.SELECT_END
-						State.SELECT_END -> State.RUNNING
-						State.RUNNING -> State.PAUSED
-						State.PAUSED -> State.RUNNING
+					//move to next state if waiting for enter to be pressed
+					when (state) {
+						State.DRAW_MAZE -> state = State.SELECT_START
+						State.RUNNING -> state = State.PAUSED
+						State.PAUSED -> state = State.RUNNING
+						else -> {}
 					}
 				}
 			}
@@ -237,17 +257,22 @@ fun drawPreviews() {
 			val nearestWall = findNearestWall()
 
 			if (nearestWall != null) {
-				val wall = if (nearestWall.x % 1 == 0.5) { //vertical
-					Rectangle(
-						(nearestWall.x + 0.5) * (pg.width / NUM_COLUMNS.toDouble()) - HALF_WALL_WIDTH,
-						(nearestWall.y) * (pg.height / NUM_ROWS.toDouble()) + HALF_WALL_WIDTH,
+				val wall: Rectangle
+
+				if (nearestWall.x % 1 == 0.5) { //vertical
+					val screenPos = getScreenPosAtIndex(nearestWall.x + 0.5, nearestWall.y)
+					wall = Rectangle(
+						screenPos.x - HALF_WALL_WIDTH,
+						screenPos.y + HALF_WALL_WIDTH,
 						WALL_WIDTH,
 						pg.height / NUM_ROWS.toDouble() - WALL_WIDTH
 					)
-				} else { //horizontal
-					Rectangle(
-						(nearestWall.x) * (pg.width / NUM_COLUMNS.toDouble()) + HALF_WALL_WIDTH,
-						(nearestWall.y + 0.5) * (pg.height / NUM_ROWS.toDouble()) - HALF_WALL_WIDTH,
+				}
+				else { //horizontal
+					val screenPos = getScreenPosAtIndex(nearestWall.x, nearestWall.y + 0.5)
+					wall = Rectangle(
+						screenPos.x + HALF_WALL_WIDTH,
+						screenPos.y - HALF_WALL_WIDTH,
 						pg.width / NUM_COLUMNS.toDouble() - WALL_WIDTH,
 						WALL_WIDTH
 					)
@@ -259,23 +284,16 @@ fun drawPreviews() {
 		}
 
 		State.SELECT_START -> {
-			val x = floor(pg.mouse.position.x, pg.width / NUM_COLUMNS.toDouble()) +
-				0.5 * (pg.width / NUM_COLUMNS.toDouble())
-			val y = floor(pg.mouse.position.y, pg.height / NUM_ROWS.toDouble()) +
-				0.5 * (pg.height / NUM_ROWS.toDouble())
-
 			pg.drawer.fill = ColorRGBa(0.0, 0.0, 1.0, 0.5)
-			pg.drawer.circle(x, y, TERMINAL_RADIUS)
+			pg.drawer.circle(getCenterOfSquareAtScreenPos(pg.mouse.position), TERMINAL_RADIUS)
 		}
 
 		State.SELECT_END -> {
-			val x = floor(pg.mouse.position.x, pg.width / NUM_COLUMNS.toDouble()) +
-				0.5 * (pg.width / NUM_COLUMNS.toDouble())
-			val y = floor(pg.mouse.position.y, pg.height / NUM_ROWS.toDouble()) +
-				0.5 * (pg.height / NUM_ROWS.toDouble())
-
+			val pos = getCenterOfSquareAtScreenPos(pg.mouse.position)
 			pg.drawer.fill = ColorRGBa(0.0, 0.0, 1.0, 0.5)
-			pg.drawer.rectangle(x - TERMINAL_RADIUS, y - TERMINAL_RADIUS, TERMINAL_RADIUS * 2, TERMINAL_RADIUS * 2)
+			pg.drawer.rectangle(
+				pos.x - TERMINAL_RADIUS, pos.y - TERMINAL_RADIUS, TERMINAL_RADIUS * 2, TERMINAL_RADIUS * 2
+			)
 		}
 	}
 }
@@ -315,6 +333,22 @@ fun onMouseDown(event: MouseEvent) {
 					}
 				}
 			}
+		}
+		
+		State.SELECT_START -> {
+			val startPos = getIndexAtScreenPos(pg.mouse.position)
+			startX = startPos.x
+			startY = startPos.y
+
+			state = State.SELECT_END
+		}
+
+		State.SELECT_END -> {
+			val endPos = getIndexAtScreenPos(pg.mouse.position)
+			endX = endPos.x
+			endY = endPos.y
+
+			state = State.RUNNING
 		}
 	}
 }
