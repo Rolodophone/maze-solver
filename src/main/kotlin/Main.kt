@@ -11,12 +11,12 @@ import org.openrndr.shape.Rectangle
 /**
  * Number of columns in the maze (width)
  */
-const val NUM_COLUMNS: Int = 32
+const val NUM_COLUMNS: Int = 128
 
 /**
  * Number of rows in the maze (height)
  */
-const val NUM_ROWS: Int = 18
+const val NUM_ROWS: Int = 72
 
 /**
  * How many milliseconds to pause for when finding a correct path (0 means as fast as possible; -1 means pause until
@@ -28,7 +28,7 @@ const val PAUSE_SOLUTION: Long = -1
  * How many milliseconds to pause for on each path that is neither correct nor a dead end (0 means as fast as possible;
  * -1 means until enter is pressed).
  */
-const val PAUSE_SEARCHING: Long = 10
+const val PAUSE_SEARCHING: Long = 0
 
 /**
  * How many milliseconds to pause for when finding a dead end (0 means as fast as possible; -1 means until enter is
@@ -54,22 +54,22 @@ val COLOUR_DEAD_END: ColorRGBa = COLOUR_SEARCHING
 /**
  * The width of the walls of the maze.
  */
-const val WALL_WIDTH: Double = 8.0
+const val WALL_WIDTH: Double = 3.0
 
 /**
  * The radius of the circle representing the start position of the maze..
  */
-const val TERMINAL_RADIUS: Double = 12.0
+const val TERMINAL_RADIUS: Double = 2.0
 
 /**
  * The width of the line representing the current path.
  */
-const val PATH_WIDTH: Double = 8.0
+const val PATH_WIDTH: Double = 2.0
 
 /**
  * The chance that each square creates a wall next to it when the walls are randomised.
  */
-const val WALL_CHANCE: Int = 4
+const val WALL_CHANCE: Int = 6
 
 
 const val HALF_WALL_WIDTH = WALL_WIDTH / 2
@@ -85,6 +85,7 @@ var endX: Int? = null
 var endY: Int? = null
 
 var solvingJob: Job? = null
+val solvingLock = Any()
 
 
 enum class State {
@@ -180,6 +181,7 @@ fun main() {
 
 				//draw start and end
 				drawer.fill = ColorRGBa.BLUE
+				drawer.strokeWeight = 0.0
 
 				val startX = startX
 				val startY = startY
@@ -343,10 +345,6 @@ fun drawStuff() {
 		
 		// draw path
 		State.PAUSED, State.RUNNING -> {
-			//prevent concurrent modification
-			val currentPath = currentPath
-			val currentPathType = currentPathType
-
 			pg.drawer.stroke = when (currentPathType!!) {
 				PathType.DEAD_END -> COLOUR_DEAD_END
 				PathType.JOURNEY -> COLOUR_SEARCHING
@@ -354,11 +352,12 @@ fun drawStuff() {
 			}
 			pg.drawer.strokeWeight = PATH_WIDTH
 
-			pg.drawer.lineStrip(currentPath.map { getCenterOfSquareAtIndex(it.x, it.y) })
+			synchronized(solvingLock) {
+				pg.drawer.lineStrip(currentPath.map { getCenterOfSquareAtIndex(it.x, it.y) })
+			}
 
 			pg.drawer.stroke = null
 			pg.drawer.strokeWeight = 0.0
-
 		}
 	}
 }

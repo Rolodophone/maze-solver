@@ -1,9 +1,10 @@
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import org.openrndr.math.IntVector2
+import java.util.Collections.synchronizedList
 
 var discoveredSquares = mutableListOf<Square>()
-var currentPath = mutableListOf<Square>()
+var currentPath: MutableList<Square> = synchronizedList(mutableListOf())
 var currentPathType: PathType? = null
 
 enum class PathType {
@@ -23,8 +24,11 @@ val pauseChannel = Channel<Unit>(0)
  * should be traversed to get from the start to the finish.
  */
 suspend fun solveMaze(maze: List<List<Square>>, startPos: IntVector2, endPos: IntVector2): List<List<Square>> {
+	synchronized(solvingLock) {
+		currentPath = mutableListOf()
+	}
+
 	discoveredSquares = mutableListOf()
-	currentPath = mutableListOf()
 	currentPathType = PathType.JOURNEY
 	state = State.RUNNING
 	val solutions = maze[startPos.y][startPos.x].visit(maze, maze[endPos.y][endPos.x])
@@ -33,14 +37,19 @@ suspend fun solveMaze(maze: List<List<Square>>, startPos: IntVector2, endPos: In
 }
 
 suspend fun Square.visit(maze: List<List<Square>>, endSquare: Square): List<List<Square>> {
-	currentPath.add(this)
+	synchronized(solvingLock) {
+		currentPath.add(this)
+	}
 	discoveredSquares.add(this)
 
 	if (this == endSquare) {
 		currentPathType = PathType.SOLUTION
 		delayOrPause(PAUSE_SOLUTION)
 		currentPathType = PathType.JOURNEY
-		currentPath.removeLast()
+
+		synchronized(solvingLock) {
+			currentPath.removeLast()
+		}
 		return listOf(currentPath)
 	}
 
@@ -65,7 +74,9 @@ suspend fun Square.visit(maze: List<List<Square>>, endSquare: Square): List<List
 		delayOrPause(PAUSE_SEARCHING)
 	}
 
-	currentPath.removeLast()
+	synchronized(solvingLock) {
+		currentPath.removeLast()
+	}
 	return solutions
 }
 
