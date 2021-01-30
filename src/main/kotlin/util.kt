@@ -1,5 +1,6 @@
 import org.openrndr.math.IntVector2
 import org.openrndr.math.Vector2
+import kotlin.random.Random.Default.nextInt
 
 /**
  * Finds the nearest wall to the mouse position.
@@ -36,6 +37,7 @@ fun findNearestWall(): Vector2? {
 	else nearestWall
 }
 
+
 fun getScreenPosAtIndex(x: Double, y: Double): Vector2 {
 	return Vector2(
 		x * (pg.width / NUM_COLUMNS.toDouble()),
@@ -63,3 +65,8 @@ fun getCenterOfSquareAtScreenPos(x: Double, y: Double): Vector2 {
 	return getCenterOfSquareAtIndex(getIndexAtScreenPos(x, y))
 }
 fun getCenterOfSquareAtScreenPos(pos: Vector2) = getCenterOfSquareAtScreenPos(pos.x, pos.y)
+
+
+fun randomChance(chance: Int): Boolean {
+	return nextInt(chance) == 0
+}

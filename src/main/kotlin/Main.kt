@@ -4,7 +4,6 @@ import kotlinx.coroutines.launch
 import org.openrndr.*
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.loadFont
-import org.openrndr.extra.olive.oliveProgram
 import org.openrndr.math.IntVector2
 import org.openrndr.shape.Rectangle
 
@@ -12,44 +11,65 @@ import org.openrndr.shape.Rectangle
 /**
  * Number of columns in the maze (width)
  */
-const val NUM_COLUMNS: Int = 6
+const val NUM_COLUMNS: Int = 32
 
 /**
  * Number of rows in the maze (height)
  */
-const val NUM_ROWS: Int = 4
+const val NUM_ROWS: Int = 18
 
 /**
- * How many milliseconds to pause for when finding a correct path (0 means as fast as possible; -1 means pause until enter
- * is pressed)
+ * How many milliseconds to pause for when finding a correct path (0 means as fast as possible; -1 means pause until
+ * enter is pressed)
  */
 const val PAUSE_SOLUTION: Long = -1
 
 /**
- * How many milliseconds to pause for on each path that is neither correct nor a dead end (0 means as fast as possible; -1
- * means until enter is pressed)
+ * How many milliseconds to pause for on each path that is neither correct nor a dead end (0 means as fast as possible;
+ * -1 means until enter is pressed).
  */
-const val PAUSE_SEARCHING: Long = 0
+const val PAUSE_SEARCHING: Long = 10
 
 /**
- * How many milliseconds to pause for when finding a dead end (0 means as fast as possible; -1 means until enter is pressed)
+ * How many milliseconds to pause for when finding a dead end (0 means as fast as possible; -1 means until enter is
+ * pressed).
  */
-const val PAUSE_DEAD_END: Long = 1000
+const val PAUSE_DEAD_END: Long = PAUSE_SEARCHING
 
 /**
- * The width of the walls of the maze
+ * The colour the path changes to when a solution is found.
  */
-const val WALL_WIDTH: Double = 12.0
+val COLOUR_SOLUTION: ColorRGBa = ColorRGBa.GREEN
 
 /**
- * The radius of the circle representing the start position of the maze
+ * The normal colour of the path
  */
-const val TERMINAL_RADIUS = 25.0
+val COLOUR_SEARCHING: ColorRGBa = ColorRGBa.RED
 
 /**
- * The width of the line representing the current path
+ * The colour the path changes to when a dead end is found.
  */
-const val PATH_WIDTH = 10.0
+val COLOUR_DEAD_END: ColorRGBa = COLOUR_SEARCHING
+
+/**
+ * The width of the walls of the maze.
+ */
+const val WALL_WIDTH: Double = 8.0
+
+/**
+ * The radius of the circle representing the start position of the maze..
+ */
+const val TERMINAL_RADIUS: Double = 12.0
+
+/**
+ * The width of the line representing the current path.
+ */
+const val PATH_WIDTH: Double = 8.0
+
+/**
+ * The chance that each square creates a wall next to it when the walls are randomised.
+ */
+const val WALL_CHANCE: Int = 4
 
 
 const val HALF_WALL_WIDTH = WALL_WIDTH / 2
@@ -58,7 +78,7 @@ const val HALF_WALL_WIDTH = WALL_WIDTH / 2
 lateinit var pg: Program
 
 var state = State.DRAW_MAZE
-val squares = initialiseSquares()
+lateinit var squares: List<List<Square>>
 var startX: Int? = null
 var startY: Int? = null
 var endX: Int? = null
@@ -75,17 +95,18 @@ enum class State {
 fun main() {
 	application {
 		configure {
-			width = 1080
+			width = 1280
 			height = 720
 			windowResizable = true
 			title = "Maze Solver"
 		}
-		oliveProgram {
+		program {
 			pg = this
 			drawer.fontMap = loadFont("data/fonts/default.otf", 16.0)
+			initialiseSquares()
 
 			extend {
-				//never use stroke
+				//disable stroke
 				drawer.stroke = null
 
 				//draw background
@@ -155,6 +176,8 @@ fun main() {
 				drawer.fill = ColorRGBa.BLACK
 				drawer.rectangles(walls)
 
+				drawStuff()
+
 				//draw start and end
 				drawer.fill = ColorRGBa.BLUE
 
@@ -171,8 +194,6 @@ fun main() {
 					drawer.rectangle(pos, TERMINAL_RADIUS*2, TERMINAL_RADIUS*2)
 				}
 
-				drawStuff()
-
 				Info.draw()
 			}
 
@@ -184,7 +205,16 @@ fun main() {
 						State.DRAW_MAZE -> state = State.SELECT_START
 						State.RUNNING -> pauseSolving()
 						State.PAUSED -> resumeSolving()
-						else -> {}
+						State.SELECT_START -> {
+							if (startX != null && startY != null) {
+								state = State.SELECT_END
+							}
+						}
+						State.SELECT_END -> {
+							if (endX != null && endY != null) {
+								startSolving()
+							}
+						}
 					}
 				}
 				else if (e.key == KEY_ESCAPE) {
@@ -192,13 +222,18 @@ fun main() {
 						stopSolving()
 					}
 				}
+				else if (e.name == "r") {
+					if (state == State.DRAW_MAZE) {
+						randomiseSquares()
+					}
+				}
 			}
 		}
 	}
 }
 
-fun initialiseSquares(): List<List<Square>> {
-	val squares = MutableList(NUM_ROWS) { y ->
+fun initialiseSquares() {
+	squares = MutableList(NUM_ROWS) { y ->
 		MutableList(NUM_COLUMNS) { x ->
 			Square(x, y, null, null, null, null)
 		}
@@ -221,8 +256,41 @@ fun initialiseSquares(): List<List<Square>> {
 			}
 		}
 	}
+}
 
-	return squares
+fun randomiseSquares() {
+	//remove all walls
+	initialiseSquares()
+
+	//add walls randomly
+	for (row in squares) {
+		for (square in row) {
+			square.left.let {
+				if (it != null && randomChance(WALL_CHANCE)) {
+					it.right = null
+					square.left = null
+				}
+			}
+			square.up.let {
+				if (it != null && randomChance(WALL_CHANCE)) {
+					it.down = null
+					square.up = null
+				}
+			}
+			square.right.let {
+				if (it != null && randomChance(WALL_CHANCE)) {
+					it.left = null
+					square.right = null
+				}
+			}
+			square.down.let {
+				if (it != null && randomChance(WALL_CHANCE)) {
+					it.up = null
+					square.down = null
+				}
+			}
+		}
+	}
 }
 
 fun drawStuff() {
@@ -275,13 +343,22 @@ fun drawStuff() {
 		
 		// draw path
 		State.PAUSED, State.RUNNING -> {
+			//prevent concurrent modification
+			val currentPath = currentPath
+			val currentPathType = currentPathType
+
 			pg.drawer.stroke = when (currentPathType!!) {
-				PathType.DEAD_END -> ColorRGBa.RED
-				PathType.JOURNEY -> ColorRGBa.YELLOW
-				PathType.SOLUTION -> ColorRGBa.GREEN
+				PathType.DEAD_END -> COLOUR_DEAD_END
+				PathType.JOURNEY -> COLOUR_SEARCHING
+				PathType.SOLUTION -> COLOUR_SOLUTION
 			}
 			pg.drawer.strokeWeight = PATH_WIDTH
+
 			pg.drawer.lineStrip(currentPath.map { getCenterOfSquareAtIndex(it.x, it.y) })
+
+			pg.drawer.stroke = null
+			pg.drawer.strokeWeight = 0.0
+
 		}
 	}
 }
@@ -347,8 +424,6 @@ fun startSolving() {
 	solvingJob = GlobalScope.launch {
 		solveMaze(squares, IntVector2(startX!!, startY!!), IntVector2(endX!!, endY!!))
 	}
-
-	state = State.RUNNING
 }
 
 fun stopSolving() {
@@ -357,11 +432,10 @@ fun stopSolving() {
 }
 
 fun pauseSolving() {
-	//TODO
 	state = State.PAUSED
 }
 
 fun resumeSolving() {
-	//TODO
+	pauseChannel.offer(Unit)
 	state = State.RUNNING
 }
