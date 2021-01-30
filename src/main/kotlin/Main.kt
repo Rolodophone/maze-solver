@@ -1,11 +1,12 @@
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.openrndr.*
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.loadFont
 import org.openrndr.extra.olive.oliveProgram
 import org.openrndr.math.IntVector2
-import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
-import kotlin.math.floor
 
 
 /**
@@ -19,21 +20,21 @@ const val NUM_COLUMNS: Int = 6
 const val NUM_ROWS: Int = 4
 
 /**
- * How many seconds to pause for when finding a correct path (0 means as fast as possible; -1 means pause until enter
+ * How many milliseconds to pause for when finding a correct path (0 means as fast as possible; -1 means pause until enter
  * is pressed)
  */
-const val PAUSE_SOLUTION: Double = -1.0
+const val PAUSE_SOLUTION: Long = -1
 
 /**
- * How many seconds to pause for on each path that is neither correct nor a dead end (0 means as fast as possible; -1
+ * How many milliseconds to pause for on each path that is neither correct nor a dead end (0 means as fast as possible; -1
  * means until enter is pressed)
  */
-const val PAUSE_SEARCHING: Double = 0.0
+const val PAUSE_SEARCHING: Long = 0
 
 /**
- * How many seconds to pause for when finding a dead end (0 means as fast as possible; -1 means until enter is pressed)
+ * How many milliseconds to pause for when finding a dead end (0 means as fast as possible; -1 means until enter is pressed)
  */
-const val PAUSE_DEAD_END: Double = 1.0
+const val PAUSE_DEAD_END: Long = 1000
 
 /**
  * The width of the walls of the maze
@@ -45,17 +46,25 @@ const val WALL_WIDTH: Double = 12.0
  */
 const val TERMINAL_RADIUS = 25.0
 
+/**
+ * The width of the line representing the current path
+ */
+const val PATH_WIDTH = 10.0
+
 
 const val HALF_WALL_WIDTH = WALL_WIDTH / 2
 
 
 lateinit var pg: Program
+
 var state = State.DRAW_MAZE
 val squares = initialiseSquares()
 var startX: Int? = null
 var startY: Int? = null
 var endX: Int? = null
 var endY: Int? = null
+
+var solvingJob: Job? = null
 
 
 enum class State {
@@ -162,7 +171,7 @@ fun main() {
 					drawer.rectangle(pos, TERMINAL_RADIUS*2, TERMINAL_RADIUS*2)
 				}
 
-				drawPreviews()
+				drawStuff()
 
 				Info.draw()
 			}
@@ -171,17 +180,16 @@ fun main() {
 
 			keyboard.keyDown.listen { e ->
 				if (e.key == KEY_ENTER) {
-					//move to next state if waiting for enter to be pressed
 					when (state) {
 						State.DRAW_MAZE -> state = State.SELECT_START
-						State.RUNNING -> state = State.PAUSED
-						State.PAUSED -> state = State.RUNNING
+						State.RUNNING -> pauseSolving()
+						State.PAUSED -> resumeSolving()
 						else -> {}
 					}
 				}
 				else if (e.key == KEY_ESCAPE) {
 					if (state == State.RUNNING || state == State.PAUSED) {
-						state = State.DRAW_MAZE
+						stopSolving()
 					}
 				}
 			}
@@ -217,10 +225,10 @@ fun initialiseSquares(): List<List<Square>> {
 	return squares
 }
 
-fun drawPreviews() {
+fun drawStuff() {
 	when (state) {
+		//draw preview of wall at mouse position
 		State.DRAW_MAZE -> {
-			//draw preview of wall at mouse position
 			val nearestWall = findNearestWall()
 
 			if (nearestWall != null) {
@@ -249,18 +257,31 @@ fun drawPreviews() {
 				pg.drawer.rectangle(wall)
 			}
 		}
-
+		
+		//draw start pos preview
 		State.SELECT_START -> {
 			pg.drawer.fill = ColorRGBa(0.0, 0.0, 1.0, 0.5)
 			pg.drawer.circle(getCenterOfSquareAtScreenPos(pg.mouse.position), TERMINAL_RADIUS)
 		}
 
+		//draw end pos preview
 		State.SELECT_END -> {
 			val pos = getCenterOfSquareAtScreenPos(pg.mouse.position)
 			pg.drawer.fill = ColorRGBa(0.0, 0.0, 1.0, 0.5)
 			pg.drawer.rectangle(
 				pos.x - TERMINAL_RADIUS, pos.y - TERMINAL_RADIUS, TERMINAL_RADIUS * 2, TERMINAL_RADIUS * 2
 			)
+		}
+		
+		// draw path
+		State.PAUSED, State.RUNNING -> {
+			pg.drawer.stroke = when (currentPathType!!) {
+				PathType.DEAD_END -> ColorRGBa.RED
+				PathType.JOURNEY -> ColorRGBa.YELLOW
+				PathType.SOLUTION -> ColorRGBa.GREEN
+			}
+			pg.drawer.strokeWeight = PATH_WIDTH
+			pg.drawer.lineStrip(currentPath.map { getCenterOfSquareAtIndex(it.x, it.y) })
 		}
 	}
 }
@@ -303,7 +324,7 @@ fun onMouseDown(event: MouseEvent) {
 		}
 		
 		State.SELECT_START -> {
-			val startPos = getIndexAtScreenPos(pg.mouse.position)
+			val startPos = getIndexAtScreenPos(event.position)
 			startX = startPos.x
 			startY = startPos.y
 
@@ -311,11 +332,36 @@ fun onMouseDown(event: MouseEvent) {
 		}
 
 		State.SELECT_END -> {
-			val endPos = getIndexAtScreenPos(pg.mouse.position)
+			val endPos = getIndexAtScreenPos(event.position)
 			endX = endPos.x
 			endY = endPos.y
 
-			state = State.RUNNING
+			startSolving()
 		}
+
+		else -> {}
 	}
+}
+
+fun startSolving() {
+	solvingJob = GlobalScope.launch {
+		solveMaze(squares, IntVector2(startX!!, startY!!), IntVector2(endX!!, endY!!))
+	}
+
+	state = State.RUNNING
+}
+
+fun stopSolving() {
+	solvingJob?.cancel()
+	state = State.DRAW_MAZE
+}
+
+fun pauseSolving() {
+	//TODO
+	state = State.PAUSED
+}
+
+fun resumeSolving() {
+	//TODO
+	state = State.RUNNING
 }
