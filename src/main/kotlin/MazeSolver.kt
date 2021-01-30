@@ -1,3 +1,4 @@
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import org.openrndr.math.IntVector2
 
@@ -8,6 +9,8 @@ var currentPathType: PathType? = null
 enum class PathType {
 	DEAD_END, SOLUTION, JOURNEY
 }
+
+val pauseChannel = Channel<Unit>(0)
 
 /**
  * Solves a maze (a 2D list of [Square]s).
@@ -22,8 +25,11 @@ enum class PathType {
 suspend fun solveMaze(maze: List<List<Square>>, startPos: IntVector2, endPos: IntVector2): List<List<Square>> {
 	discoveredSquares = mutableListOf()
 	currentPath = mutableListOf()
-	currentPathType = null
-	return maze[startPos.y][startPos.x].visit(maze, maze[endPos.y][endPos.x])
+	currentPathType = PathType.JOURNEY
+	state = State.RUNNING
+	val solutions = maze[startPos.y][startPos.x].visit(maze, maze[endPos.y][endPos.x])
+	state = State.DRAW_MAZE
+	return solutions
 }
 
 suspend fun Square.visit(maze: List<List<Square>>, endSquare: Square): List<List<Square>> {
@@ -32,11 +38,13 @@ suspend fun Square.visit(maze: List<List<Square>>, endSquare: Square): List<List
 
 	if (this == endSquare) {
 		currentPathType = PathType.SOLUTION
-		delay(PAUSE_SOLUTION)
+		delayOrPause(PAUSE_SOLUTION)
+		currentPathType = PathType.JOURNEY
+		currentPath.removeLast()
 		return listOf(currentPath)
 	}
 
-	delay(PAUSE_SEARCHING)
+	delayOrPause(PAUSE_SEARCHING)
 
 	val solutions = mutableListOf<List<Square>>()
 	var deadEnd = true
@@ -50,13 +58,28 @@ suspend fun Square.visit(maze: List<List<Square>>, endSquare: Square): List<List
 
 	if (deadEnd) {
 		currentPathType = PathType.DEAD_END
-		delay(PAUSE_DEAD_END)
+		delayOrPause(PAUSE_DEAD_END)
 		currentPathType = PathType.JOURNEY
 	}
 	else {
-		delay(PAUSE_SEARCHING)
+		delayOrPause(PAUSE_SEARCHING)
 	}
 
 	currentPath.removeLast()
 	return solutions
+}
+
+suspend fun delayOrPause(timeMillis: Long) {
+	//pause automatically
+	if (timeMillis == -1L) {
+		state = State.PAUSED
+	}
+	else {
+		delay(timeMillis)
+	}
+
+	//pause either automatically or manually
+	if (state == State.PAUSED) {
+		pauseChannel.receive()
+	}
 }
