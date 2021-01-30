@@ -6,6 +6,7 @@ import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.loadFont
 import org.openrndr.math.IntVector2
 import org.openrndr.shape.Rectangle
+import kotlin.random.Random.Default.nextBoolean
 
 
 /**
