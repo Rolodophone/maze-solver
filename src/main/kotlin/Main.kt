@@ -69,7 +69,7 @@ const val PATH_WIDTH: Double = 16.0
 /**
  * The chance that each square creates a wall next to it when the walls are randomised.
  */
-const val WALL_CHANCE: Int = 4
+const val WALL_CHANCE: Int = 3
 
 
 const val HALF_WALL_WIDTH = WALL_WIDTH / 2
