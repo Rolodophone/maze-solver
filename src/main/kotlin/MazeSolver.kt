@@ -30,13 +30,13 @@ suspend fun solveMaze(maze: List<List<Square>>, startPos: IntVector2, endPos: In
 
 	discoveredSquares = mutableListOf()
 	currentPathType = PathType.JOURNEY
-	state = State.RUNNING
-	val solutions = maze[startPos.y][startPos.x].visit(maze, maze[endPos.y][endPos.x])
+	state = State.DFS
+	val solutions = maze[startPos.y][startPos.x].visit(maze[endPos.y][endPos.x])
 	state = State.DRAW_MAZE
 	return solutions
 }
 
-suspend fun Square.visit(maze: List<List<Square>>, endSquare: Square): List<List<Square>> {
+suspend fun Square.visit(endSquare: Square): List<List<Square>> {
 	synchronized(solvingLock) {
 		currentPath.add(this)
 	}
@@ -60,7 +60,7 @@ suspend fun Square.visit(maze: List<List<Square>>, endSquare: Square): List<List
 
 	for (adjacentSquare in this) {
 		if (adjacentSquare !in discoveredSquares) {
-			solutions.addAll(adjacentSquare.visit(maze, endSquare))
+			solutions.addAll(adjacentSquare.visit(endSquare))
 			deadEnd = false
 		}
 	}

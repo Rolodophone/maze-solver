@@ -5,6 +5,7 @@ import org.openrndr.*
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.loadFont
 import org.openrndr.math.IntVector2
+import org.openrndr.shape.LineSegment
 import org.openrndr.shape.Rectangle
 
 
@@ -89,7 +90,7 @@ val solvingLock = Any()
 
 
 enum class State {
-	DRAW_MAZE, SELECT_START, SELECT_END, RUNNING, PAUSED
+	DRAW_MAZE, SELECT_START, SELECT_END, SELECT_TYPE, DFS, BFS, SPF, PAUSED_DFS, PAUSED_BFS, PAUSED_SPF
 }
 
 
@@ -205,8 +206,8 @@ fun main() {
 				if (e.key == KEY_ENTER) {
 					when (state) {
 						State.DRAW_MAZE -> state = State.SELECT_START
-						State.RUNNING -> pauseSolving()
-						State.PAUSED -> resumeSolving()
+						State.DFS, State.BFS, State.SPF -> pauseSolving()
+						State.PAUSED_BFS, State.PAUSED_DFS, State.PAUSED_SPF -> resumeSolving()
 						State.SELECT_START -> {
 							if (startX != null && startY != null) {
 								state = State.SELECT_END
@@ -214,20 +215,29 @@ fun main() {
 						}
 						State.SELECT_END -> {
 							if (endX != null && endY != null) {
-								startSolving()
+								state = State.SELECT_TYPE
 							}
 						}
+						State.SELECT_TYPE -> {}
 					}
 				}
 				else if (e.key == KEY_ESCAPE) {
-					if (state == State.RUNNING || state == State.PAUSED) {
+					if (state in listOf(State.DFS, State.BFS, State.SPF, State.PAUSED_DFS, State.PAUSED_BFS,
+							State.PAUSED_SPF)) {
 						stopSolving()
 					}
 				}
-				else if (e.name == "r") {
-					if (state == State.DRAW_MAZE) {
-						randomiseSquares()
-					}
+				else if (e.name == "r" && state == State.DRAW_MAZE) {
+					randomiseSquares()
+				}
+				else if (e.name == "d" && state == State.SELECT_TYPE) {
+					startDFS()
+				}
+				else if (e.name == "b" && state == State.SELECT_TYPE) {
+					startBFS()
+				}
+				else if (e.name == "s" && state == State.SELECT_TYPE) {
+					startSPF()
 				}
 			}
 		}
@@ -344,7 +354,7 @@ fun drawStuff() {
 		}
 		
 		// draw path
-		State.PAUSED, State.RUNNING -> {
+		State.PAUSED_DFS, State.DFS -> {
 			pg.drawer.stroke = when (currentPathType!!) {
 				PathType.DEAD_END -> COLOUR_DEAD_END
 				PathType.JOURNEY -> COLOUR_SEARCHING
@@ -355,6 +365,26 @@ fun drawStuff() {
 			synchronized(solvingLock) {
 				pg.drawer.lineStrip(currentPath.map { getCenterOfSquareAtIndex(it.x, it.y) })
 			}
+
+			pg.drawer.stroke = null
+			pg.drawer.strokeWeight = 0.0
+		}
+
+		State.PAUSED_BFS, State.BFS -> {
+			pg.drawer.stroke = when (currentPathType!!) {
+				PathType.DEAD_END -> COLOUR_DEAD_END
+				PathType.JOURNEY -> COLOUR_SEARCHING
+				PathType.SOLUTION -> COLOUR_SOLUTION
+			}
+			pg.drawer.strokeWeight = PATH_WIDTH
+
+			val lines = mutableListOf<LineSegment>()
+
+			synchronized(solvingLock) {
+
+			}
+
+			pg.drawer.lineSegments(lines)
 
 			pg.drawer.stroke = null
 			pg.drawer.strokeWeight = 0.0
@@ -412,17 +442,27 @@ fun onMouseDown(event: MouseEvent) {
 			endX = endPos.x
 			endY = endPos.y
 
-			startSolving()
+			startDFS()
 		}
 
 		else -> {}
 	}
 }
 
-fun startSolving() {
+fun startDFS() {
 	solvingJob = GlobalScope.launch {
 		solveMaze(squares, IntVector2(startX!!, startY!!), IntVector2(endX!!, endY!!))
 	}
+}
+
+fun startBFS() {
+	solvingJob = GlobalScope.launch {
+		breadthFirstSearch(squares, IntVector2(startX!!, startY!!), IntVector2(endX!!, endY!!))
+	}
+}
+
+fun startSPF() {
+
 }
 
 fun stopSolving() {
@@ -436,5 +476,14 @@ fun pauseSolving() {
 
 fun resumeSolving() {
 	pauseChannel.offer(Unit)
-	state = State.RUNNING
+	state = State.DFS
+}
+
+fun BFSTree.draw() {
+	if (children.isEmpty()) {
+
+	}
+	else {
+		children.forEach { it.draw() }
+	}
 }

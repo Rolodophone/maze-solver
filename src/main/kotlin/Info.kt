@@ -13,11 +13,14 @@ object Info {
 		}
 
 		text = when (state) {
-			State.DRAW_MAZE -> "Draw the maze. Press r to randomise. Press enter when done."
-			State.SELECT_START -> "Select a start location. Press enter to keep."
-			State.SELECT_END -> "Select an end location. Press enter to keep."
-			State.RUNNING -> "Running. Press enter to pause or press escape to stop."
-			State.PAUSED -> "Paused. Press enter to continue or press escape to stop."
+			State.DRAW_MAZE -> "Draw the maze. Press R to randomise. Press ENTER when done."
+			State.SELECT_START -> "Select a start location. Press ENTER to keep."
+			State.SELECT_END -> "Select an end location. Press ENTER to keep."
+			State.SELECT_TYPE -> "Press: D for DFS; B for BFS; S for SPF."
+			State.DFS -> "Running DFS. Press ENTER to pause or press ESC to stop."
+			State.BFS -> "Running BFS. Press ENTER to pause or press ESC to stop."
+			State.SPF -> "Running SPF. Press ENTER to pause or press ESC to stop."
+			State.PAUSED -> "Paused. Press ENTER to continue or press ESC to stop."
 		}
 
 		//draw a white background
