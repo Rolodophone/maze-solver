@@ -11,12 +11,12 @@ import org.openrndr.shape.Rectangle
 /**
  * Number of columns in the maze (width)
  */
-const val NUM_COLUMNS: Int = 64
+const val NUM_COLUMNS: Int = 16
 
 /**
  * Number of rows in the maze (height)
  */
-const val NUM_ROWS: Int = 36
+const val NUM_ROWS: Int = 9
 
 /**
  * How many milliseconds to pause for when finding a correct path (0 means as fast as possible; -1 means pause until
@@ -28,13 +28,13 @@ const val PAUSE_SOLUTION: Long = -1
  * How many milliseconds to pause for on each path that is neither correct nor a dead end (0 means as fast as possible;
  * -1 means until enter is pressed).
  */
-const val PAUSE_SEARCHING: Long = 10
+const val PAUSE_SEARCHING: Long = 500
 
 /**
  * How many milliseconds to pause for when finding a dead end (0 means as fast as possible; -1 means until enter is
  * pressed).
  */
-const val PAUSE_DEAD_END: Long = PAUSE_SEARCHING
+const val PAUSE_DEAD_END: Long = 200
 
 /**
  * The colour the path changes to when a solution is found.
@@ -44,32 +44,32 @@ val COLOUR_SOLUTION: ColorRGBa = ColorRGBa.GREEN
 /**
  * The normal colour of the path
  */
-val COLOUR_SEARCHING: ColorRGBa = ColorRGBa.RED
+val COLOUR_SEARCHING: ColorRGBa = ColorRGBa.YELLOW
 
 /**
  * The colour the path changes to when a dead end is found.
  */
-val COLOUR_DEAD_END: ColorRGBa = COLOUR_SEARCHING
+val COLOUR_DEAD_END: ColorRGBa = ColorRGBa.RED
 
 /**
  * The width of the walls of the maze.
  */
-const val WALL_WIDTH: Double = 6.0
+const val WALL_WIDTH: Double = 16.0
 
 /**
  * The radius of the circle representing the start position of the maze..
  */
-const val TERMINAL_RADIUS: Double = 8.0
+const val TERMINAL_RADIUS: Double = 25.0
 
 /**
  * The width of the line representing the current path.
  */
-const val PATH_WIDTH: Double = 4.0
+const val PATH_WIDTH: Double = 16.0
 
 /**
  * The chance that each square creates a wall next to it when the walls are randomised.
  */
-const val WALL_CHANCE: Int = 5
+const val WALL_CHANCE: Int = 4
 
 
 const val HALF_WALL_WIDTH = WALL_WIDTH / 2
