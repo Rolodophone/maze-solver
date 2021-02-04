@@ -83,14 +83,14 @@ suspend fun Square.visit(endSquare: Square): List<List<Square>> {
 suspend fun delayOrPause(timeMillis: Long) {
 	//pause automatically
 	if (timeMillis == -1L) {
-		state = State.PAUSED
+		pauseSolving()
 	}
 	else {
 		delay(timeMillis)
 	}
 
 	//pause either automatically or manually
-	if (state == State.PAUSED) {
+	if (state in listOf(State.PAUSED_DFS, State.PAUSED_BFS, State.PAUSED_SPF)) {
 		pauseChannel.receive()
 	}
 }

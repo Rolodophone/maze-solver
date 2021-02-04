@@ -3,8 +3,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.openrndr.*
 import org.openrndr.color.ColorRGBa
+import org.openrndr.draw.LineCap
 import org.openrndr.draw.loadFont
 import org.openrndr.math.IntVector2
+import org.openrndr.math.Vector2
 import org.openrndr.shape.LineSegment
 import org.openrndr.shape.Rectangle
 
@@ -108,8 +110,9 @@ fun main() {
 			initialiseSquares()
 
 			extend {
-				//disable stroke
+				//drawer style
 				drawer.stroke = null
+				drawer.lineCap = LineCap.SQUARE
 
 				//draw background
 				drawer.clear(ColorRGBa.WHITE)
@@ -361,10 +364,14 @@ fun drawStuff() {
 				PathType.SOLUTION -> COLOUR_SOLUTION
 			}
 			pg.drawer.strokeWeight = PATH_WIDTH
+			
+			val lineStrip: List<Vector2>
 
 			synchronized(solvingLock) {
-				pg.drawer.lineStrip(currentPath.map { getCenterOfSquareAtIndex(it.x, it.y) })
+				lineStrip = currentPath.map { getCenterOfSquareAtIndex(it.x, it.y) }
 			}
+
+			pg.drawer.lineStrip(lineStrip)
 
 			pg.drawer.stroke = null
 			pg.drawer.strokeWeight = 0.0
@@ -378,10 +385,10 @@ fun drawStuff() {
 			}
 			pg.drawer.strokeWeight = PATH_WIDTH
 
-			val lines = mutableListOf<LineSegment>()
+			val lines: List<LineSegment>
 
 			synchronized(solvingLock) {
-
+				lines = currentBFSPath.calcLines()
 			}
 
 			pg.drawer.lineSegments(lines)
@@ -389,6 +396,10 @@ fun drawStuff() {
 			pg.drawer.stroke = null
 			pg.drawer.strokeWeight = 0.0
 		}
+		
+		State.PAUSED_SPF, State.SPF -> {}
+		
+		State.SELECT_TYPE -> {}
 	}
 }
 
@@ -442,7 +453,7 @@ fun onMouseDown(event: MouseEvent) {
 			endX = endPos.x
 			endY = endPos.y
 
-			startDFS()
+			state = State.SELECT_TYPE
 		}
 
 		else -> {}
@@ -471,19 +482,20 @@ fun stopSolving() {
 }
 
 fun pauseSolving() {
-	state = State.PAUSED
+	state = when (state) {
+		State.DFS -> State.PAUSED_DFS
+		State.BFS -> State.PAUSED_BFS
+		State.SPF -> State.PAUSED_SPF
+		else -> throw IllegalStateException("Cannot pause before maze solver has started.")
+	}
 }
 
 fun resumeSolving() {
 	pauseChannel.offer(Unit)
-	state = State.DFS
-}
-
-fun BFSTree.draw() {
-	if (children.isEmpty()) {
-
-	}
-	else {
-		children.forEach { it.draw() }
+	state = when (state) {
+		State.PAUSED_DFS -> State.DFS
+		State.PAUSED_BFS -> State.BFS
+		State.PAUSED_SPF -> State.SPF
+		else -> throw IllegalStateException("Cannot resume unless maze solver is paused.")
 	}
 }

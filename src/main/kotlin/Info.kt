@@ -20,12 +20,14 @@ object Info {
 			State.DFS -> "Running DFS. Press ENTER to pause or press ESC to stop."
 			State.BFS -> "Running BFS. Press ENTER to pause or press ESC to stop."
 			State.SPF -> "Running SPF. Press ENTER to pause or press ESC to stop."
-			State.PAUSED -> "Paused. Press ENTER to continue or press ESC to stop."
+			State.PAUSED_DFS -> "Paused DFS. Press ENTER to continue or press ESC to stop."
+			State.PAUSED_BFS -> "Paused BFS. Press ENTER to continue or press ESC to stop."
+			State.PAUSED_SPF -> "Paused SPF. Press ENTER to continue or press ESC to stop."
 		}
 
-		//draw a white background
+		//draw a translucent background
 		if (text != "") {
-			pg.drawer.fill = ColorRGBa.WHITE
+			pg.drawer.fill = ColorRGBa(1.0, 1.0, 1.0, 0.9)
 			pg.drawer.rectangle(bounds)
 		}
 
